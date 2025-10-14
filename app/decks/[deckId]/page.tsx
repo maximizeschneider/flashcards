@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { FlashcardAssistant } from "@/components/ai/flashcard-assistant";
 
 export default function DeckDetailPage() {
   const params = useParams<{ deckId: string }>();
@@ -146,7 +147,10 @@ export default function DeckDetailPage() {
       </div>
 
       <section className="grid gap-4 lg:grid-cols-[360px,1fr]">
-        <ReviewPanel cards={dueCards} totalDue={deck?.stats.due} onReview={handleReview} />
+        <div className="grid gap-4">
+          <ReviewPanel cards={dueCards} totalDue={deck?.stats.due} onReview={handleReview} />
+          <FlashcardAssistant deckId={deckId} deckName={deck?.name} cards={cards} />
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Your cards</CardTitle>

@@ -5,7 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { BookOpenCheck, Layers3 } from "lucide-react";
 
 import { DeckCard, type Deck } from "@/components/decks/deck-card";
-import { DeckForm } from "@/components/decks/deck-form";
+import { DeckForm, type DeckFormValues } from "@/components/decks/deck-form";
 import {
   Card,
   CardContent,
@@ -19,6 +19,7 @@ export default function Home() {
   const { toast } = useToast();
   const decks = (useQuery("decks:list") as Deck[] | undefined) ?? [];
   const createDeck = useMutation("decks:create");
+  const createCard = useMutation("cards:create");
   const removeDeck = useMutation("decks:remove");
 
   const totals = useMemo(() => {
@@ -33,13 +34,63 @@ export default function Home() {
     );
   }, [decks]);
 
-  async function handleCreateDeck(values: { name: string; description?: string }) {
+  async function handleCreateDeck(values: DeckFormValues) {
     try {
-      await createDeck(values);
-      toast({
-        title: "Deck created",
-        description: "Add some cards and start a review session!",
-      });
+      const deckId = await createDeck({ name: values.name, description: values.description });
+
+      const shouldGenerate = Boolean(values.generation?.topic || values.generation?.sources?.length);
+
+      if (shouldGenerate && deckId) {
+        try {
+          const response = await fetch(`/api/decks/${deckId}/generate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topic: values.generation?.topic,
+              sources: values.generation?.sources ?? [],
+              deckName: values.name,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to generate flashcards");
+          }
+
+          const data = (await response.json()) as {
+            cards?: Array<{ front: string; back: string; hint?: string }>;
+            warning?: string;
+          };
+
+          const generatedCards = data.cards ?? [];
+
+          if (generatedCards.length > 0) {
+            await Promise.all(
+              generatedCards.map((card) =>
+                createCard({ deckId, front: card.front, back: card.back, hint: card.hint }),
+              ),
+            );
+          }
+
+          toast({
+            title: generatedCards.length > 0 ? "Deck ready" : "Deck created",
+            description:
+              generatedCards.length > 0
+                ? `Saved ${generatedCards.length} AI-generated flashcards.`
+                : data.warning ?? "No flashcards were generated. Try refining your topic or sources.",
+          });
+        } catch (error) {
+          console.error(error);
+          toast({
+            title: "Deck created",
+            description: "We couldn't generate flashcards automatically. Add cards manually whenever you're ready.",
+          });
+        }
+      } else {
+        toast({
+          title: "Deck created",
+          description: "Add some cards and start a review session!",
+        });
+      }
     } catch (error) {
       console.error(error);
       toast({
