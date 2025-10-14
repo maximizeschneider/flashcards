@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Sparkles, Trash2 } from "lucide-react";
+import { Clock, Repeat2, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,20 +15,56 @@ import {
 
 export type Flashcard = {
   _id: string;
+  deckId: string;
   front: string;
   back: string;
   hint?: string;
-  known: boolean;
+  due: number;
+  interval: number;
+  ease: number;
+  reps: number;
+  lapses: number;
   createdAt?: number;
 };
 
 type FlashcardCardProps = {
   card: Flashcard;
-  onToggleKnown: (id: string, known: boolean) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
 };
 
-export function FlashcardCard({ card, onToggleKnown, onRemove }: FlashcardCardProps) {
+function formatDue(due: number) {
+  const diff = due - Date.now();
+  if (diff <= 0) {
+    return "Due now";
+  }
+
+  const minutes = Math.max(1, Math.round(diff / (60 * 1000)));
+  if (minutes < 60) {
+    return `Due in ${minutes} minute${minutes === 1 ? "" : "s"}`;
+  }
+
+  const hours = Math.round(diff / (60 * 60 * 1000));
+  if (hours < 24) {
+    return `Due in ${hours} hour${hours === 1 ? "" : "s"}`;
+  }
+
+  const days = Math.round(diff / (24 * 60 * 60 * 1000));
+  return `Due in ${days} day${days === 1 ? "" : "s"}`;
+}
+
+function describeInterval(interval: number) {
+  if (interval <= 0) {
+    return "Learning";
+  }
+
+  if (interval === 1) {
+    return "1 day";
+  }
+
+  return `${interval} days`;
+}
+
+export function FlashcardCard({ card, onRemove }: FlashcardCardProps) {
   const [showBack, setShowBack] = useState(false);
 
   return (
@@ -36,11 +72,10 @@ export function FlashcardCard({ card, onToggleKnown, onRemove }: FlashcardCardPr
       <CardHeader>
         <CardTitle className="flex items-start justify-between gap-2">
           <span>{card.front}</span>
-          {card.known ? (
-            <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-          ) : (
-            <Sparkles className="h-5 w-5 text-primary" />
-          )}
+          <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            {formatDue(card.due)}
+          </span>
         </CardTitle>
         {card.hint ? (
           <CardDescription>
@@ -58,13 +93,10 @@ export function FlashcardCard({ card, onToggleKnown, onRemove }: FlashcardCardPr
           <Button variant="secondary" size="sm" onClick={() => setShowBack((prev) => !prev)}>
             {showBack ? "Hide" : "Reveal"}
           </Button>
-          <Button
-            size="sm"
-            variant={card.known ? "outline" : "default"}
-            onClick={() => onToggleKnown(card._id, !card.known)}
-          >
-            {card.known ? "Mark as new" : "Mark known"}
-          </Button>
+          <span className="flex items-center gap-1 rounded-md border border-dashed border-border px-2 text-xs text-muted-foreground">
+            <Repeat2 className="h-3.5 w-3.5" />
+            {describeInterval(card.interval)} · EF {card.ease.toFixed(2)}
+          </span>
         </div>
         <Button
           variant="ghost"
