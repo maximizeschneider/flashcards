@@ -2,15 +2,10 @@
 
 import { useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { PlusCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { BookOpenCheck, Layers3 } from "lucide-react";
 
-import {
-  FlashcardCard,
-  type Flashcard,
-} from "@/components/flashcards/flashcard-card";
-import { FlashcardForm } from "@/components/flashcards/flashcard-form";
-import { Button } from "@/components/ui/button";
+import { DeckCard, type Deck } from "@/components/decks/deck-card";
+import { DeckForm } from "@/components/decks/deck-form";
 import {
   Card,
   CardContent,
@@ -21,111 +16,101 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 
 export default function Home() {
-  const router = useRouter();
   const { toast } = useToast();
-  const flashcards = (useQuery("flashcards:list") as Flashcard[] | undefined) ?? [];
-  const createFlashcard = useMutation("flashcards:create");
-  const toggleKnown = useMutation("flashcards:toggleKnown");
-  const removeFlashcard = useMutation("flashcards:remove");
+  const decks = (useQuery("decks:list") as Deck[] | undefined) ?? [];
+  const createDeck = useMutation("decks:create");
+  const removeDeck = useMutation("decks:remove");
 
-  const stats = useMemo(() => {
-    const total = flashcards.length;
-    const known = flashcards.filter((card) => card.known).length;
-    return {
-      total,
-      known,
-      newCount: total - known,
-    };
-  }, [flashcards]);
+  const totals = useMemo(() => {
+    return decks.reduce(
+      (acc, deck) => {
+        acc.decks += 1;
+        acc.cards += deck.stats.total;
+        acc.due += deck.stats.due;
+        return acc;
+      },
+      { decks: 0, cards: 0, due: 0 },
+    );
+  }, [decks]);
 
-  async function handleCreate(values: {
-    front: string;
-    back: string;
-    hint?: string;
-  }) {
+  async function handleCreateDeck(values: { name: string; description?: string }) {
     try {
-      await createFlashcard(values);
+      await createDeck(values);
       toast({
-        title: "Flashcard created",
-        description: "Keep going! Consistency makes memories stick.",
+        title: "Deck created",
+        description: "Add some cards and start a review session!",
       });
     } catch (error) {
       console.error(error);
       toast({
-        title: "Unable to create flashcard",
+        title: "Unable to create deck",
         description: "Check your Convex deployment URL and try again.",
       });
     }
   }
 
-  async function handleToggleKnown(id: string, known: boolean) {
-    try {
-      await toggleKnown({ id, known });
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Unable to update",
-        description: "Is your Convex backend running?",
-      });
+  async function handleRemoveDeck(id: string) {
+    const confirmed = window.confirm(
+      "Deleting this deck will remove all of its cards. Continue?",
+    );
+    if (!confirmed) {
+      return;
     }
-  }
 
-  async function handleRemove(id: string) {
     try {
-      await removeFlashcard({ id });
+      await removeDeck({ id });
       toast({
-        title: "Flashcard removed",
+        title: "Deck deleted",
       });
     } catch (error) {
       console.error(error);
       toast({
-        title: "Unable to remove",
-        description: "Double-check the Convex configuration.",
+        title: "Unable to delete deck",
+        description: "Is your Convex backend running?",
       });
     }
   }
 
   return (
     <main className="container mx-auto grid max-w-6xl gap-6 px-6 py-10">
-      <section className="grid gap-4 lg:grid-cols-[320px,1fr]">
+      <section className="grid gap-4 lg:grid-cols-[340px,1fr]">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <PlusCircle className="h-5 w-5" />
-              Create flashcard
+              <Layers3 className="h-5 w-5" />
+              Create a deck
             </CardTitle>
             <CardDescription>
-              Capture prompts and answers for quick spaced repetition.
+              Group related concepts and let the scheduler handle spaced repetition for each deck.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <FlashcardForm onSubmit={handleCreate} />
+            <DeckForm onSubmit={handleCreateDeck} />
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Progress overview</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpenCheck className="h-5 w-5" />
+              Study snapshot
+            </CardTitle>
             <CardDescription>
-              Track how many cards are in your rotation and what remains to learn.
+              Keep an eye on how many decks and cards are ready for review.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <dl className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <dt className="text-sm text-muted-foreground">Total cards</dt>
-                <dd className="text-2xl font-semibold">{stats.total}</dd>
+                <dt className="text-sm text-muted-foreground">Decks</dt>
+                <dd className="text-2xl font-semibold">{totals.decks}</dd>
               </div>
               <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <dt className="text-sm text-muted-foreground">Known</dt>
-                <dd className="text-2xl font-semibold text-emerald-400">
-                  {stats.known}
-                </dd>
+                <dt className="text-sm text-muted-foreground">Cards</dt>
+                <dd className="text-2xl font-semibold">{totals.cards}</dd>
               </div>
               <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <dt className="text-sm text-muted-foreground">To review</dt>
-                <dd className="text-2xl font-semibold text-primary">
-                  {stats.newCount}
-                </dd>
+                <dt className="text-sm text-muted-foreground">Due today</dt>
+                <dd className="text-2xl font-semibold text-primary">{totals.due}</dd>
               </div>
             </dl>
           </CardContent>
@@ -133,32 +118,22 @@ export default function Home() {
       </section>
 
       <section className="grid gap-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">Your flashcards</h2>
-            <p className="text-sm text-muted-foreground">
-              Flip cards, track mastery, and keep learning.
-            </p>
-          </div>
-          <Button variant="outline" onClick={() => router.refresh()}>
-            Refresh
-          </Button>
+        <div>
+          <h2 className="text-lg font-semibold">Your decks</h2>
+          <p className="text-sm text-muted-foreground">
+            Create decks by topic, then dive into reviews powered by spaced repetition.
+          </p>
         </div>
-        {flashcards.length === 0 ? (
+        {decks.length === 0 ? (
           <Card>
             <CardContent className="py-10 text-center text-muted-foreground">
-              No flashcards yet. Add your first card to start studying.
+              No decks yet. Start by creating your first study collection.
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {flashcards.map((card) => (
-              <FlashcardCard
-                key={card._id}
-                card={card}
-                onToggleKnown={handleToggleKnown}
-                onRemove={handleRemove}
-              />
+            {decks.map((deck) => (
+              <DeckCard key={deck._id} deck={deck} onRemove={handleRemoveDeck} />
             ))}
           </div>
         )}

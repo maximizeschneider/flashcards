@@ -1,6 +1,6 @@
 # Flashcards
 
-A study companion built with Next.js 14, Tailwind CSS, shadcn/ui components, and Convex. Create flashcards, flip them to reveal answers, and track your mastery progress with real-time updates from Convex.
+A study companion built with Next.js 14, Tailwind CSS, shadcn/ui components, and Convex. Create decks, capture cards, and let the built-in spaced repetition scheduler surface due reviews just like Anki.
 
 ## Getting started
 
@@ -28,8 +28,8 @@ A study companion built with Next.js 14, Tailwind CSS, shadcn/ui components, and
 ## Project structure
 
 - `app/` – App Router pages and providers for Convex and global UI concerns.
-- `components/` – shadcn/ui primitives and flashcard-specific components.
-- `convex/` – Database schema and backend functions that power flashcard CRUD operations.
+- `components/` – shadcn/ui primitives plus deck, flashcard, and review-specific components.
+- `convex/` – Database schema and backend functions that power deck management, card CRUD, and spaced repetition scheduling.
 - `lib/` – Shared utilities, including Tailwind class name helpers.
 
 ## Available scripts
@@ -47,7 +47,7 @@ Tailwind CSS is configured with CSS variables for light/dark theming. shadcn/ui 
 
 ## Convex
 
-Convex is used for storing flashcards and handling mutations. Use the Convex CLI to generate types and run the backend locally:
+Convex stores decks, cards, and the scheduling metadata that powers the spaced repetition system. Use the Convex CLI to generate types and run the backend locally:
 
 ```bash
 npx convex dev
