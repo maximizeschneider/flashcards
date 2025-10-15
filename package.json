@@ -11,6 +11,9 @@
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@better-auth/convex": "^0.5.1",
+    "@better-auth/react": "^0.5.1",
+    "better-auth": "^0.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.11.1",

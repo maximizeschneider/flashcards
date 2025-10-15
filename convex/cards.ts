@@ -1,6 +1,21 @@
 import { mutation, query } from "convex/server";
 import { v } from "convex/values";
 
+type AuthContext = {
+  auth: {
+    getUserIdentity(): Promise<{ subject: string } | null>;
+  };
+};
+
+async function requireUserId(ctx: AuthContext) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Not authenticated");
+  }
+
+  return identity.subject;
+}
+
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const MIN_EASE = 1.3;
 
@@ -76,8 +91,14 @@ function scheduleCard(
 export const listByDeck = query({
   args: { deckId: v.string() },
   handler: async (ctx, { deckId }) => {
+    const userId = await requireUserId(ctx);
     const normalizedDeckId = ctx.db.normalizeId("decks", deckId);
     if (!normalizedDeckId) {
+      throw new Error("Deck not found");
+    }
+
+    const deck = await ctx.db.get(normalizedDeckId);
+    if (!deck || deck.userId !== userId) {
       throw new Error("Deck not found");
     }
 
@@ -94,8 +115,14 @@ export const listByDeck = query({
 export const due = query({
   args: { deckId: v.string(), limit: v.optional(v.number()) },
   handler: async (ctx, { deckId, limit }) => {
+    const userId = await requireUserId(ctx);
     const normalizedDeckId = ctx.db.normalizeId("decks", deckId);
     if (!normalizedDeckId) {
+      throw new Error("Deck not found");
+    }
+
+    const deck = await ctx.db.get(normalizedDeckId);
+    if (!deck || deck.userId !== userId) {
       throw new Error("Deck not found");
     }
 
@@ -120,12 +147,19 @@ export const create = mutation({
     hint: v.optional(v.string()),
   },
   handler: async (ctx, { deckId, front, back, hint }) => {
+    const userId = await requireUserId(ctx);
     const normalizedDeckId = ctx.db.normalizeId("decks", deckId);
     if (!normalizedDeckId) {
       throw new Error("Deck not found");
     }
 
+    const deck = await ctx.db.get(normalizedDeckId);
+    if (!deck || deck.userId !== userId) {
+      throw new Error("Deck not found");
+    }
+
     const cardId = await ctx.db.insert("cards", {
+      userId,
       deckId: normalizedDeckId,
       front,
       back,
@@ -145,8 +179,14 @@ export const create = mutation({
 export const remove = mutation({
   args: { id: v.string() },
   handler: async (ctx, { id }) => {
+    const userId = await requireUserId(ctx);
     const normalizedId = ctx.db.normalizeId("cards", id);
     if (!normalizedId) {
+      throw new Error("Card not found");
+    }
+
+    const card = await ctx.db.get(normalizedId);
+    if (!card || card.userId !== userId) {
       throw new Error("Card not found");
     }
 
@@ -165,13 +205,14 @@ export const review = mutation({
     ),
   },
   handler: async (ctx, { id, grade }) => {
+    const userId = await requireUserId(ctx);
     const normalizedId = ctx.db.normalizeId("cards", id);
     if (!normalizedId) {
       throw new Error("Card not found");
     }
 
     const card = (await ctx.db.get(normalizedId)) as CardRecord | null;
-    if (!card) {
+    if (!card || card.userId !== userId) {
       throw new Error("Card not found");
     }
 
