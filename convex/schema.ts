@@ -3,11 +3,15 @@ import { v } from "convex/values";
 
 export default defineSchema({
   decks: defineTable({
+    userId: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_created_at", ["createdAt"]),
+  })
+    .index("by_created_at", ["userId", "createdAt"])
+    .index("by_user", ["userId"]),
   cards: defineTable({
+    userId: v.string(),
     deckId: v.id("decks"),
     front: v.string(),
     back: v.string(),
@@ -20,5 +24,6 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_deck", ["deckId", "createdAt"])
-    .index("by_due", ["deckId", "due"]),
+    .index("by_due", ["deckId", "due"])
+    .index("by_user", ["userId", "createdAt"]),
 });

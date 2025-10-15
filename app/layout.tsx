@@ -7,8 +7,18 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Flashcards",
-  description: "Study smarter with flashcards powered by Convex and shadcn/ui",
+  metadataBase: new URL("https://flashcards.app"),
+  title: {
+    default: "Flashcards – AI flashcard generator and spaced repetition tracker",
+    template: "%s · Flashcards",
+  },
+  description:
+    "Create AI-assisted flashcards, schedule reviews with spaced repetition, and track progress across every study deck.",
+  robots: {
+    index: true,
+    follow: true,
+  },
+  category: "education",
 };
 
 export default function RootLayout({

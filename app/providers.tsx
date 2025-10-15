@@ -1,33 +1,30 @@
 "use client";
 
-import {
-  AuthTokenFetcher,
-  ConvexProviderWithAuth,
-  ConvexReactClient,
-} from "convex/react";
+import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 import { useMemo } from "react";
-import { Toaster } from "@/components/ui/toaster";
 
-type AuthInfo = {
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  fetchToken: AuthTokenFetcher;
-};
+import { Toaster } from "@/components/ui/toaster";
+import { getToken, useSession } from "@/lib/auth/client";
+
+function useConvexAuth() {
+  const { data, status } = useSession();
+
+  return {
+    isLoading: status === "loading",
+    isAuthenticated: Boolean(data?.user),
+    fetchToken: async () => {
+      const token = await getToken();
+      return token?.value ?? null;
+    },
+  };
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "http://localhost:3000";
   const convex = useMemo(() => new ConvexReactClient(convexUrl), [convexUrl]);
-  const auth = useMemo<AuthInfo>(
-    () => ({
-      isLoading: false,
-      isAuthenticated: true,
-      fetchToken: async () => null,
-    }),
-    [],
-  );
 
   return (
-    <ConvexProviderWithAuth client={convex} useAuth={() => auth}>
+    <ConvexProviderWithAuth client={convex} useAuth={useConvexAuth}>
       {children}
       <Toaster />
     </ConvexProviderWithAuth>

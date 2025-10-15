@@ -102,7 +102,7 @@ export default function DeckDetailPage() {
     <main className="container mx-auto grid max-w-6xl gap-6 px-6 py-10">
       <div className="flex flex-col gap-3">
         <Button asChild variant="ghost" className="w-fit">
-          <Link href="/">
+          <Link href="/dashboard">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to decks
           </Link>
         </Button>
